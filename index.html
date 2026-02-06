@@ -115,6 +115,23 @@
             border-radius: 10px;
             font-weight: 600;
         }
+        .error-box { 
+            background: #fef2f2; 
+            color: #dc2626; 
+            padding: 20px; 
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .retry-btn {
+            margin-top: 15px;
+            padding: 12px 24px;
+            background: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
         .modal {
             display: none;
             position: fixed;
@@ -222,6 +239,82 @@
     <script>
         const AFILIADO_ID = 'SEU_ID_AQUI';
         
+        // PRODUTOS DE FALLBACK (quando API falha)
+        const PRODUTOS_FALLBACK = [
+            {
+                id: 'fb1',
+                title: 'Fone de Ouvido Bluetooth JBL Tune 510BT - Preto',
+                price: 199.90,
+                original_price: 299.90,
+                thumbnail: 'https://http2.mlstatic.com/D_NQ_NP_987650-MLA47585767953_092021-O.webp',
+                permalink: 'https://www.mercadolivre.com.br/fone-de-ouvido-jbl-tune-510bt-preto/p/MLB16073780',
+                seller: { nickname: 'JBL Oficial', seller_reputation: { level_id: '5_green', transactions: { completed: 52340 } } },
+                rating_average: 4.8,
+                rating_total: 15420,
+                shipping: { free_shipping: true, logistic_type: 'fulfillment' }
+            },
+            {
+                id: 'fb2',
+                title: 'Fone Bluetooth QCY T13 TWS Original - Branco',
+                price: 89.90,
+                original_price: 149.90,
+                thumbnail: 'https://http2.mlstatic.com/D_NQ_NP_765432-MLA45678901234_082021-O.webp',
+                permalink: 'https://www.mercadolivre.com.br/fone-bluetooth-qcy-t13/p/MLB12345678',
+                seller: { nickname: 'Tech Imports BR', seller_reputation: { level_id: '4_light_green', transactions: { completed: 8750 } } },
+                rating_average: 4.5,
+                rating_total: 3240,
+                shipping: { free_shipping: true, logistic_type: 'cross_docking' }
+            },
+            {
+                id: 'fb3',
+                title: 'Fone Bluetooth Xiaomi Redmi Buds 4 Lite - Preto',
+                price: 129.00,
+                original_price: 179.00,
+                thumbnail: 'https://http2.mlstatic.com/D_NQ_NP_123456-MLA56789012345_092022-O.webp',
+                permalink: 'https://www.mercadolivre.com.br/fone-xiaomi-redmi-buds-4-lite/p/MLB23456789',
+                seller: { nickname: 'Xiaomi Store BR', seller_reputation: { level_id: '5_green', transactions: { completed: 125000 } } },
+                rating_average: 4.7,
+                rating_total: 8900,
+                shipping: { free_shipping: true, logistic_type: 'fulfillment' }
+            },
+            {
+                id: 'fb4',
+                title: 'Fone Bluetooth Sony WH-CH520 - Azul',
+                price: 349.00,
+                original_price: 499.00,
+                thumbnail: 'https://http2.mlstatic.com/D_NQ_NP_654321-MLA98765432109_032023-O.webp',
+                permalink: 'https://www.mercadolivre.com.br/fone-sony-wh-ch520/p/MLB34567890',
+                seller: { nickname: 'Sony Brasil', seller_reputation: { level_id: '5_green', transactions: { completed: 89000 } } },
+                rating_average: 4.6,
+                rating_total: 5670,
+                shipping: { free_shipping: true, logistic_type: 'fulfillment' }
+            },
+            {
+                id: 'fb5',
+                title: 'Fone Bluetooth Apple AirPods 2 - Branco',
+                price: 899.00,
+                original_price: 1299.00,
+                thumbnail: 'https://http2.mlstatic.com/D_NQ_NP_111111-MLA44444444444_052020-O.webp',
+                permalink: 'https://www.mercadolivre.com.br/apple-airpods-2/p/MLB45678901',
+                seller: { nickname: 'Apple Oficial', seller_reputation: { level_id: '5_green', transactions: { completed: 200000 } } },
+                rating_average: 4.9,
+                rating_total: 45200,
+                shipping: { free_shipping: true, logistic_type: 'fulfillment' }
+            },
+            {
+                id: 'fb6',
+                title: 'Fone Bluetooth Baseus Bowie E18 - Preto',
+                price: 79.90,
+                original_price: 129.90,
+                thumbnail: 'https://http2.mlstatic.com/D_NQ_NP_222222-MLA55555555555_112022-O.webp',
+                permalink: 'https://www.mercadolivre.com.br/fone-baseus-bowie-e18/p/MLB56789012',
+                seller: { nickname: 'Baseus Official', seller_reputation: { level_id: '4_light_green', transactions: { completed: 15600 } } },
+                rating_average: 4.3,
+                rating_total: 1890,
+                shipping: { free_shipping: false, logistic_type: 'not_specified' }
+            }
+        ];
+        
         function getTrustScore(item) {
             const rating = item.rating_average || 0;
             const reviews = item.rating_total || 0;
@@ -264,36 +357,98 @@
             const resultado = document.getElementById('resultado');
             resultado.innerHTML = '<div class="loading">🔍 Buscando melhores produtos...</div>';
             
-            try {
-                const response = await fetch(
-                    `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(termo)}&limit=20&sort=relevance`
-                );
+            // Tenta múltiplas fontes de API
+            const tentativas = [
+                // Tentativa 1: Proxy do Vercel (se existir)
+                () => fetch(`/api/buscar?q=${encodeURIComponent(termo)}`),
                 
-                if (!response.ok) throw new Error('Erro na busca');
+                // Tentativa 2: API pública com CORS
+                () => fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(
+                    `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(termo)}&limit=20`
+                )}`).then(r => r.json()).then(j => ({ json: () => JSON.parse(j.contents) })),
                 
-                const data = await response.json();
-                
-                if (!data.results || data.results.length === 0) {
-                    resultado.innerHTML = '<div class="loading">Nenhum produto encontrado 😕</div>';
-                    return;
+                // Tentativa 3: Outro proxy CORS
+                () => fetch(`https://corsproxy.io/?${encodeURIComponent(
+                    `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(termo)}&limit=20`
+                )}`)
+            ];
+            
+            for (let i = 0; i < tentativas.length; i++) {
+                try {
+                    console.log(`Tentativa ${i + 1}...`);
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 8000);
+                    
+                    const response = await tentativas[i]();
+                    clearTimeout(timeout);
+                    
+                    if (!response.ok && response.status !== undefined) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Normaliza dados se veio do allorigins
+                    const resultados = data.results || data;
+                    
+                    if (!resultados || resultados.length === 0) {
+                        throw new Error('Sem resultados');
+                    }
+                    
+                    const produtos = resultados.map(item => ({
+                        ...item,
+                        trustScore: getTrustScore(item)
+                    })).sort((a, b) => b.trustScore - a.trustScore);
+                    
+                    renderizarProdutos(produtos, false);
+                    return; // Sucesso!
+                    
+                } catch (erro) {
+                    console.log(`Tentativa ${i + 1} falhou:`, erro.message);
+                    if (i === tentativas.length - 1) {
+                        // Última tentativa falhou, usa fallback
+                        usarFallback(termo);
+                    }
                 }
-                
-                const produtos = data.results.map(item => ({
-                    ...item,
-                    trustScore: getTrustScore(item)
-                })).sort((a, b) => b.trustScore - a.trustScore);
-                
-                renderizarProdutos(produtos);
-                
-            } catch (erro) {
-                resultado.innerHTML = `<div class="loading">❌ Erro: ${erro.message}</div>`;
             }
         }
         
-        function renderizarProdutos(produtos) {
+        function usarFallback(termo) {
+            console.log('Usando produtos de fallback...');
+            
+            // Filtra produtos de exemplo pelo termo buscado
+            const termoLower = termo.toLowerCase();
+            const filtrados = PRODUTOS_FALLBACK.filter(p => 
+                p.title.toLowerCase().includes(termoLower) ||
+                termoLower.includes('fone') ||
+                termoLower.includes('bluetooth') ||
+                termoLower.includes('headphone')
+            );
+            
+            // Se não encontrou nada específico, mostra todos
+            const produtos = filtrados.length > 0 ? filtrados : PRODUTOS_FALLBACK;
+            
+            const produtosComScore = produtos.map(p => ({
+                ...p,
+                trustScore: getTrustScore(p)
+            })).sort((a, b) => b.trustScore - a.trustScore);
+            
+            renderizarProdutos(produtosComScore, true);
+        }
+        
+        function renderizarProdutos(produtos, isFallback) {
             const resultado = document.getElementById('resultado');
             
+            const avisoFallback = isFallback ? `
+                <div class="error-box" style="background: #fffbeb; color: #92400e; margin-bottom: 20px;">
+                    ⚠️ <strong>Modo de demonstração</strong><br>
+                    Mostrando produtos de exemplo. 
+                    <button class="retry-btn" onclick="buscar()" style="background: #d97706;">Tentar novamente</button>
+                </div>
+            ` : '';
+            
             resultado.innerHTML = `
+                ${avisoFallback}
                 <h2 style="margin-bottom: 20px; color: #333;">🏆 ${produtos.length} produtos encontrados</h2>
                 <div class="grid">
                     ${produtos.map(p => {
@@ -303,11 +458,18 @@
                         
                         const frete = p.shipping?.free_shipping ? '🚚 Frete Grátis' : 'Frete a calcular';
                         
+                        // Melhora URL da imagem
+                        let imgUrl = p.thumbnail || '';
+                        if (imgUrl.includes('mlstatic.com')) {
+                            imgUrl = imgUrl.replace(/-[A-Z]\.jpg$/, '-O.jpg');
+                            imgUrl = imgUrl.replace('http://', 'https://');
+                        }
+                        
                         return `
                             <div class="card" onclick="abrirModal('${p.id}')">
-                                <img src="${p.thumbnail.replace('I.jpg', 'O.jpg')}" 
+                                <img src="${imgUrl}" 
                                      alt="${p.title}"
-                                     onerror="this.src='https://via.placeholder.com/300x200?text=Sem+Imagem'">
+                                     onerror="this.onerror=null; this.src='https://via.placeholder.com/300x200/667eea/ffffff?text=${encodeURIComponent(p.title.substring(0, 20))}';">
                                 <div class="card-body">
                                     <div class="seller">${p.seller?.nickname || 'Vendedor'}</div>
                                     <div class="card-title">${p.title}</div>
@@ -330,7 +492,7 @@
                                        class="btn-comprar" 
                                        target="_blank"
                                        onclick="event.stopPropagation()">
-                                        Ver Oferta 🔗
+                                        ${isFallback ? 'Ver Exemplo 🔗' : 'Ver Oferta 🔗'}
                                     </a>
                                 </div>
                             </div>
@@ -349,7 +511,17 @@
             const p = window.produtosCache[id];
             if (!p) return;
             
-            document.getElementById('modalImg').src = p.thumbnail.replace('I.jpg', 'O.jpg');
+            let imgUrl = p.thumbnail || '';
+            if (imgUrl.includes('mlstatic.com')) {
+                imgUrl = imgUrl.replace(/-[A-Z]\.jpg$/, '-O.jpg');
+                imgUrl = imgUrl.replace('http://', 'https://');
+            }
+            
+            document.getElementById('modalImg').src = imgUrl;
+            document.getElementById('modalImg').onerror = function() {
+                this.style.display = 'none';
+                this.parentElement.innerHTML = `<div style="height:250px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#667eea,#764ba2);font-size:80px;color:white;">🎧</div>`;
+            };
             
             const freteClass = p.shipping?.free_shipping ? 'free' : 'paid';
             const freteTexto = p.shipping?.free_shipping ? '🚚 Frete Grátis' : '🚚 Frete: Consultar';
@@ -399,7 +571,7 @@
                    class="btn-comprar" 
                    target="_blank"
                    style="font-size: 18px; padding: 18px;">
-                   🛒 COMPRAR AGORA
+                   🛒 ${p.id.startsWith('fb') ? 'VER EXEMPLO (MODO DEMO)' : 'COMPRAR AGORA'}
                 </a>
             `;
             
@@ -408,17 +580,17 @@
         
         function gerarAnalise(p) {
             const partes = [];
-            if (p.trustScore >= 90) partes.push('Produto <strong>altamente confiável</strong>.');
-            else if (p.trustScore >= 70) partes.push('Produto com <strong>boa reputação</strong>.');
-            else partes.push('<strong>Atenção:</strong> avalie com cuidado.');
+            if (p.trustScore >= 90) partes.push('Produto <strong>altamente confiável</strong>. Excelente custo-benefício.');
+            else if (p.trustScore >= 70) partes.push('Produto com <strong>boa reputação</strong>. Vale a pena considerar.');
+            else partes.push('<strong>Atenção:</strong> avalie com cuidado antes de comprar.');
             
             if (p.rating_total > 1000) partes.push('Muitas avaliações reais de compradores.');
-            else if (p.rating_total < 50) partes.push('Poucas avaliações. Verifique o vendedor.');
+            else if (p.rating_total < 50) partes.push('Poucas avaliações. Verifique bem o vendedor.');
             
-            if (p.shipping?.free_shipping) partes.push('Frete grátis é um diferencial.');
+            if (p.shipping?.free_shipping) partes.push('Frete grátis é um grande diferencial!');
             
             if (p.original_price && p.price < p.original_price * 0.8) {
-                partes.push('🔥 <strong>Promoção ativa!</strong> Preço abaixo do normal.');
+                partes.push('🔥 <strong>Promoção ativa!</strong> Preço bem abaixo do normal.');
             }
             
             return partes.join(' ');
@@ -430,8 +602,10 @@
             }
         }
         
+        // Busca automática ao carregar
         setTimeout(buscar, 500);
         
+        // Busca ao pressionar Enter
         document.getElementById('searchInput').addEventListener('keypress', e => {
             if (e.key === 'Enter') buscar();
         });
