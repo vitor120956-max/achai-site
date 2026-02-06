@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Achaí - Melhores Produtos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: #f5f5f5; }
+        header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; 
+            padding: 20px; 
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo { font-size: 28px; font-weight: bold; margin-bottom: 15px; }
+        .search-box { 
+            display: flex; 
+            gap: 10px; 
+            max-width: 500px; 
+            margin: 0 auto;
+        }
+        input { 
+            flex: 1; 
+            padding: 15px; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 16px;
+        }
+        button.search-btn {
+            padding: 15px 25px;
+            background: #16a34a;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px; 
+        }
+        .card { 
+            background: white; 
+            border-radius: 16px; 
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .card img { 
+            width: 100%; 
+            height: 200px; 
+            object-fit: cover; 
+            background: #eee;
+        }
+        .card-body { padding: 15px; }
+        .seller { 
+            font-size: 12px; 
+            color: #666; 
+            margin-bottom: 5px;
+        }
+        .card-title { 
+            font-size: 15px; 
+            font-weight: 600; 
+            margin-bottom: 10px;
+            line-height: 1.4;
+            height: 42px;
+            overflow: hidden;
+        }
+        .price { 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #111; 
+            margin-bottom: 10px;
+        }
+        .price-original {
+            font-size: 14px;
+            color: #999;
+            text-decoration: line-through;
+            margin-bottom: 5px;
+        }
+        .rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .stars { color: #fbbf24; }
+        .trust-badge {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        .trust-high { background: #f0fdf4; color: #16a34a; }
+        .trust-medium { background: #fffbeb; color: #d97706; }
+        .trust-low { background: #fef2f2; color: #dc2626; }
+        .btn-comprar {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: #2563eb;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header { position: relative; }
+        .modal-header img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+        .modal-close {
+            position: absolute;
+            top: 15px; right: 15px;
+            width: 40px; height: 40px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .modal-body { padding: 20px; }
+        .modal-title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat {
+            text-align: center;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 12px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .analysis-box {
+            background: #eff6ff;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        .analysis-box h4 { color: #2563eb; margin-bottom: 10px; }
+        .shipping {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .shipping.free { background: #f0fdf4; color: #16a34a; }
+        .shipping.paid { background: #fef2f2; color: #dc2626; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">✅ Achaí</div>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="O que você procura?" value="fone bluetooth">
+            <button class="search-btn" onclick="buscar()">Buscar</button>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div id="resultado">
+            <div class="loading">🔍 Clique em Buscar para começar</div>
+        </div>
+    </div>
+    
+    <div class="modal" id="modal" onclick="fecharModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <img id="modalImg" src="" alt="">
+                <button class="modal-close" onclick="fecharModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const AFILIADO_ID = 'SEU_ID_AQUI';
+        
+        function getTrustScore(item) {
+            const rating = item.rating_average || 0;
+            const reviews = item.rating_total || 0;
+            const seller = item.seller?.seller_reputation?.level_id || '';
+            const sales = item.seller?.seller_reputation?.transactions?.completed || 0;
+            
+            let score = 50;
+            score += (rating / 5) * 25;
+            if (reviews > 1000) score += 15;
+            else if (reviews > 100) score += 10;
+            else if (reviews > 10) score += 5;
+            if (seller.includes('5')) score += 10;
+            else if (seller.includes('4')) score += 5;
+            if (sales > 10000) score += 10;
+            else if (sales > 1000) score += 5;
+            if (item.shipping?.free_shipping) score += 5;
+            
+            return Math.min(Math.round(score), 99);
+        }
+        
+        function getTrustClass(score) {
+            if (score >= 85) return 'trust-high';
+            if (score >= 60) return 'trust-medium';
+            return 'trust-low';
+        }
+        
+        function formatarPreco(valor) {
+            return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+        
+        function criarLinkAfiliado(url) {
+            if (AFILIADO_ID === 'SEU_ID_AQUI') return url;
+            return `${url}?afiliado=${AFILIADO_ID}`;
+        }
+        
+        async function buscar() {
+            const termo = document.getElementById('searchInput').value.trim();
+            if (!termo) return;
+            
+            const resultado = document.getElementById('resultado');
+            resultado.innerHTML = '<div class="loading">🔍 Buscando melhores produtos...</div>';
+            
+            try {
+                const response = await fetch(
+                    `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(termo)}&limit=20&sort=relevance`
+                );
+                
+                if (!response.ok) throw new Error('Erro na busca');
+                
+                const data = await response.json();
+                
+                if (!data.results || data.results.length === 0) {
+                    resultado.innerHTML = '<div class="loading">Nenhum produto encontrado 😕</div>';
+                    return;
+                }
+                
+                const produtos = data.results.map(item => ({
+                    ...item,
+                    trustScore: getTrustScore(item)
+                })).sort((a, b) => b.trustScore - a.trustScore);
+                
+                renderizarProdutos(produtos);
+                
+            } catch (erro) {
+                resultado.innerHTML = `<div class="loading">❌ Erro: ${erro.message}</div>`;
+            }
+        }
+        
+        function renderizarProdutos(produtos) {
+            const resultado = document.getElementById('resultado');
+            
+            resultado.innerHTML = `
+                <h2 style="margin-bottom: 20px; color: #333;">🏆 ${produtos.length} produtos encontrados</h2>
+                <div class="grid">
+                    ${produtos.map(p => {
+                        const precoOriginal = p.original_price && p.original_price > p.price 
+                            ? `<div class="price-original">${formatarPreco(p.original_price)}</div>` 
+                            : '';
+                        
+                        const frete = p.shipping?.free_shipping ? '🚚 Frete Grátis' : 'Frete a calcular';
+                        
+                        return `
+                            <div class="card" onclick="abrirModal('${p.id}')">
+                                <img src="${p.thumbnail.replace('I.jpg', 'O.jpg')}" 
+                                     alt="${p.title}"
+                                     onerror="this.src='https://via.placeholder.com/300x200?text=Sem+Imagem'">
+                                <div class="card-body">
+                                    <div class="seller">${p.seller?.nickname || 'Vendedor'}</div>
+                                    <div class="card-title">${p.title}</div>
+                                    ${precoOriginal}
+                                    <div class="price">${formatarPreco(p.price)}</div>
+                                    
+                                    <div class="rating">
+                                        <span class="stars">${'★'.repeat(Math.round(p.rating_average || 0))}${'☆'.repeat(5 - Math.round(p.rating_average || 0))}</span>
+                                        <span>(${p.rating_total || 0})</span>
+                                    </div>
+                                    
+                                    <div class="trust-badge ${getTrustClass(p.trustScore)}">
+                                        <span>🛡️ Índice Achaí</span>
+                                        <span><strong>${p.trustScore}%</strong> Confiável</span>
+                                    </div>
+                                    
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 12px;">${frete}</div>
+                                    
+                                    <a href="${criarLinkAfiliado(p.permalink)}" 
+                                       class="btn-comprar" 
+                                       target="_blank"
+                                       onclick="event.stopPropagation()">
+                                        Ver Oferta 🔗
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            window.produtosCache = produtos.reduce((acc, p) => {
+                acc[p.id] = p;
+                return acc;
+            }, {});
+        }
+        
+        function abrirModal(id) {
+            const p = window.produtosCache[id];
+            if (!p) return;
+            
+            document.getElementById('modalImg').src = p.thumbnail.replace('I.jpg', 'O.jpg');
+            
+            const freteClass = p.shipping?.free_shipping ? 'free' : 'paid';
+            const freteTexto = p.shipping?.free_shipping ? '🚚 Frete Grátis' : '🚚 Frete: Consultar';
+            
+            document.getElementById('modalBody').innerHTML = `
+                <div class="modal-title">${p.title}</div>
+                <div class="price" style="font-size: 32px; margin-bottom: 5px;">${formatarPreco(p.price)}</div>
+                ${p.original_price ? `<div class="price-original" style="font-size: 16px;">De ${formatarPreco(p.original_price)}</div>` : ''}
+                
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-value">${p.trustScore}%</div>
+                        <div class="stat-label">Confiança</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">${(p.rating_average || 0).toFixed(1)}</div>
+                        <div class="stat-label">Nota ⭐</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">${p.rating_total || 0}</div>
+                        <div class="stat-label">Avaliações</div>
+                    </div>
+                </div>
+                
+                <div class="shipping ${freteClass}">
+                    <span style="font-size: 20px;">${p.shipping?.free_shipping ? '✅' : '⚠️'}</span>
+                    <div>
+                        <strong>${freteTexto}</strong>
+                        <div style="font-size: 13px; opacity: 0.8;">
+                            ${p.shipping?.logistic_type === 'fulfillment' ? 'Enviado pelo Mercado Livre' : 'Enviado pelo vendedor'}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="analysis-box">
+                    <h4>🤖 Análise Inteligente</h4>
+                    <p>${gerarAnalise(p)}</p>
+                </div>
+                
+                <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                    <strong>🏪 Vendedor:</strong> ${p.seller?.nickname || 'N/A'}<br>
+                    <strong>📊 Vendas:</strong> ${(p.seller?.seller_reputation?.transactions?.completed || 0).toLocaleString()}<br>
+                    <strong>⭐ Reputação:</strong> ${p.seller?.seller_reputation?.level_id || 'N/A'}
+                </div>
+                
+                <a href="${criarLinkAfiliado(p.permalink)}" 
+                   class="btn-comprar" 
+                   target="_blank"
+                   style="font-size: 18px; padding: 18px;">
+                   🛒 COMPRAR AGORA
+                </a>
+            `;
+            
+            document.getElementById('modal').style.display = 'flex';
+        }
+        
+        function gerarAnalise(p) {
+            const partes = [];
+            if (p.trustScore >= 90) partes.push('Produto <strong>altamente confiável</strong>.');
+            else if (p.trustScore >= 70) partes.push('Produto com <strong>boa reputação</strong>.');
+            else partes.push('<strong>Atenção:</strong> avalie com cuidado.');
+            
+            if (p.rating_total > 1000) partes.push('Muitas avaliações reais de compradores.');
+            else if (p.rating_total < 50) partes.push('Poucas avaliações. Verifique o vendedor.');
+            
+            if (p.shipping?.free_shipping) partes.push('Frete grátis é um diferencial.');
+            
+            if (p.original_price && p.price < p.original_price * 0.8) {
+                partes.push('🔥 <strong>Promoção ativa!</strong> Preço abaixo do normal.');
+            }
+            
+            return partes.join(' ');
+        }
+        
+        function fecharModal(event) {
+            if (!event || event.target.id === 'modal') {
+                document.getElementById('modal').style.display = 'none';
+            }
+        }
+        
+        setTimeout(buscar, 500);
+        
+        document.getElementById('searchInput').addEventListener('keypress', e => {
+            if (e.key === 'Enter') buscar();
+        });
+    </script>
+</body>
+</html>
